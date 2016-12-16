@@ -1,0 +1,187 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct
+{
+    int size; // размер матрицы
+    int **m; // указатель на указатель 
+}Matr;
+
+typedef struct Tree Tree;
+struct Tree
+{
+    int key; // определитель
+    Matr *mtr;
+    Tree *left;
+    Tree *right;
+};
+
+
+Tree *tree_add(Tree *tree, int key, Matr *tmp) { // добавление нового элемента в дерево
+    Tree *node;
+    if (!tree) {
+        // создание 1 элемента в дереве
+        node = (Tree *) malloc(sizeof(Tree));
+        node->key = key;
+        node->mtr = tmp;
+        node->left = NULL;
+        node->right = NULL;
+        return node; // возвращаю указатель на вновь созданный элемент
+    }
+ 
+    if (key < tree->key) {
+        node = tree_add(tree->left, key, tmp);
+        if (!tree->left)
+            tree->left = node;
+        return node;
+    }
+ 
+    if (key == tree->key) {
+        if (tree->left)
+        {
+            node = tree_add(NULL, key, tmp);
+            node->left = tree->left;
+            tree->left = node;
+        }
+        else tree->left = tree_add(tree->left, key, tmp);
+    }
+ 
+    if (key > tree->key) {
+        node = tree_add(tree->right, key, tmp);
+        if (!tree->right)
+            tree->right = node;
+    }
+ 
+    return node;
+}
+
+
+void tree_destroy(Tree *tree) { // удаление дерева, освобождение памяти
+    if (tree) {
+        
+        tree_destroy(tree->left);
+        tree_destroy(tree->right);
+        free(tree);
+    }
+}
+
+void matr_print(Matr* tmp, FILE* output) // печать матрицы
+{
+    int size = tmp->size;
+    for(int i = 0; i < size; i++)
+    {
+        for(int j = 0; j < size; j++)
+            fprintf(output, "%d ", (tmp->m)[i][j] );
+        fprintf(output, "\n");
+
+    }
+
+}
+
+void tree_print (Tree * tree, FILE* output) // печать элемента дерева
+{
+
+    if (tree->left != NULL)
+        tree_print(tree->left, output);
+    fprintf(output, "%d\n", tree->key);
+    matr_print( (tree->mtr), output);
+
+    if (tree->right != NULL)
+        tree_print(tree->right, output);
+}
+
+
+int det(int** A, int N) {
+if (N==2)
+return A[0][0] * A[1][1] - A[0][1] * A[1][0];
+if (N==3)
+return A[0][0]*A[1][1]*A[2][2] + A[0][1]*A[1][2]*A[2][0] + A[0][2]*A[1][0]*A[2][1] - A[0][2]*A[1][1]*A[2][0] - A[0][0]*A[1][2]*A[2][1] - A[0][1]*A[1][0]*A[2][2];
+
+}
+void go (struct Tree *root)
+{	int cnt=0;
+	cnt++;
+	if (!root)
+	{
+		cnt--;
+		printf("NULL\n");
+		return;
+	}
+	printf("level: %d \n%d\n", cnt, root->key);
+	if (root->left)
+	{
+		printf("left:");
+		go(root-> left);
+	}
+	if (root -> left)
+	{
+		printf("right:");
+		go(root -> right);
+	}
+	cnt--;
+	return;
+}
+
+    int main()
+    {
+        FILE *input;
+        FILE *output;
+        int i = 0;
+        int n = 0;
+        int size = 0;
+        Matr *arr;
+        Tree *root = NULL, *node;
+
+        if( (input = fopen( "input.txt", "r"  )) != NULL   ) // проверка наличия файла
+        {
+            if( (output = fopen( "output.txt", "w"  )) != NULL   )
+            {
+
+
+                fscanf(input, "%d", &n); 
+
+                arr = (Matr*)malloc(n * sizeof(Matr)); // вводим массив матриц
+                for(i = 0; i < n; i++)
+                {
+                    fscanf(input, "%d", &size);
+                    arr[i].size = size;
+                    arr[i].m = (int**)malloc( size * sizeof(int*) );
+                    for(int j = 0; j < size; j++)
+                        (arr[i].m)[j] = (int*)malloc(size * sizeof(int) );
+
+                    for(int k1 = 0; k1 < size; k1++)
+                        for(int k2 = 0; k2 < size; k2++)
+                            fscanf(input, "%d", &(arr[i].m)[k1][k2] );
+                    int d = det(arr[i].m, size);
+
+
+                    node =  tree_add(root, d, &arr[i] );
+                    if (!root)
+                        root = node;
+
+                }
+                tree_print(root, output);
+                fclose(output);
+            }
+            else
+                perror("fopen");
+            go (root);
+            fclose(input);
+        }
+        else
+            perror("fopen");
+
+        for(int i = 0; i < n; i++)
+        {
+            int size = arr[i].size;
+            for(int k = 0; k < size; k++)
+                free( (arr[i].m)[k] );
+            free( arr[i].m );
+
+        }
+        
+        free(arr);
+
+        tree_destroy(root);
+        return 0;
+}
